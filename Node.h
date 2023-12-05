@@ -21,6 +21,8 @@ private:
     int numberOfUnmarkedEdges;
     bool marked;
 
+    double pheromone;
+
 public:
     Node(int id);
     ~Node();
@@ -33,6 +35,7 @@ public:
     float getWeight();
     Node *getNextNode();
     int getNumberOfEdges();
+    double getPheromone();
 
     bool hasEdgeTo(int targetId);
     bool isMarked();
@@ -47,6 +50,7 @@ public:
     void incrementNumberOfEdges();
     void decrementNumberOfEdges();
     void setMarked(bool marked);
+    void setPheromone(double pheromone);
 
     Edge *searchEdge(int targetId);
 

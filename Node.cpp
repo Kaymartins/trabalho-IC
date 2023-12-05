@@ -75,6 +75,14 @@ void Node::setWeight(float weight)
     this->weight = weight;
 }
 
+double Node::getPheromone(){
+    return this->pheromone;
+}
+
+void Node::setPheromone(double pheromone){
+    this->pheromone = pheromone;
+}
+
 bool Node::hasEdgeTo(int targetId)
 {
     Edge* currentEdge = this->getFirstEdge();
