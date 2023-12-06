@@ -22,6 +22,7 @@ private:
     bool marked;
 
     double pheromone;
+    double initialPheromone;
 
 public:
     Node(int id);
@@ -36,6 +37,8 @@ public:
     Node *getNextNode();
     int getNumberOfEdges();
     double getPheromone();
+    double getInitialPheromone();
+    double setInitialPheromone(double initialPheromone);
 
     bool hasEdgeTo(int targetId);
     bool isMarked();

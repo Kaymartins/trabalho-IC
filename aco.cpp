@@ -12,10 +12,24 @@ void initializePheromones(Graph &graph, vector<pair<float, int>> *candidates)
     {
         Node *node = nodeMap[candidate.second];
         node->setPheromone(1 / candidate.first);
+
     }
 }
 
-void updatePheromones(vector<Ant> &ants, double evaporationRate)
+void updateLocalPheromones(vector<Ant> &ants, double phi)
+{
+    for (Ant &ant : ants)
+    {
+        for (int nodeId : ant.antSolution)
+        {
+            Node *node = nodeMap[nodeId];
+            double newPheromone = (1 - phi) * node->getPheromone() + phi * node->getInitialPheromone();
+            node->setPheromone(newPheromone);
+        }
+    }
+}
+
+void updateGlobalPheromones(vector<Ant> &ants, double evaporationRate)
 {
     for (Ant &ant : ants)
     {
@@ -67,50 +81,5 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
     vector<pair<float, int>> *candidates = graph.getCandidates();
     initializePheromones(graph, candidates);
     initializeAnts(ants, nAnts, graph);
-    
 
-    //initializePheromones(graph, 1);
-   // Node *randomNode = graph.getFirstNode();
-    //initializeAnts(ants, nAnts, randomNode);
-
-   /*  for (int i = 0; i < cycles; i++)
-    {
-        for (int j = 0; j < steps; j++)
-        {
-            for (Ant &ant : ants)
-            {
-                Node *currentNode = ant.antSolution.back();
-                vector<pair<float, int>> *candidates = currentNode->getCandidates();
-                priority_queue<pair<float, int>, vector<pair<float, int>>, Compare> pq;
-
-                for (pair<float, int> candidate : *candidates)
-                {
-                    pq.push(candidate);
-                }
-
-                while (!pq.empty())
-                {
-                    pair<float, int> candidate = pq.top();
-                    pq.pop();
-
-                    if (candidate.second != currentNode->getId())
-                    {
-                        ant.antSolution.push_back(graph.getNode(candidate.second));
-                        ant.solutionCost += candidate.first;
-                        break;
-                    }
-                }
-            }
-        }
-
-        for (Ant &ant : ants)
-        {
-            if (ant.solutionCost < ant.antSolution.back()->getWeight())
-            {
-                ant.isBestSolution = true;
-            }
-        }
-
-        updatePheromones(ants, evaporation);
-    } */
 }
