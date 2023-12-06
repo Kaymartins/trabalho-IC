@@ -58,8 +58,6 @@ public:
     void removeEdge(Node *target);
     void removeEdge(int id);
     void removeAllEdges();
-
-    vector<int> getOpenNeighborhood(int id);
 };
 
 #endif // NODE_H_INCLUDED

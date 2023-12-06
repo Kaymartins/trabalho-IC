@@ -430,14 +430,23 @@ void Graph::createNeighborhoodMap()
     }
 }
 
-/*
- * Função que calcula o peso relativo de cada vértice
- * Colocamos os vértices em um vector ordenado, em que o vértice com menor peso relativo sempre esteja no topo
- * O vector criado é alocado no atributo candidates
-    * @return void
- */
+map<int, vector<int>> Graph::getNeighborhoodMap()
+{
+    if (this->openNeighborhoodMap.empty())
+    {
+        createNeighborhoodMap();
+    }
+    return this->openNeighborhoodMap;
+}
 
-void Graph::createCandidates()
+    /*
+     * Função que calcula o peso relativo de cada vértice
+     * Colocamos os vértices em um vector ordenado, em que o vértice com menor peso relativo sempre esteja no topo
+     * O vector criado é alocado no atributo candidates
+     * @return void
+     */
+
+    void Graph::createCandidates()
 {
     delete this->candidates;
     vector<pair<float, int>> *candidates = new vector<pair<float, int>>();
@@ -461,6 +470,17 @@ void Graph::createCandidates()
          {
              return a.first < b.first;
          });
+}
+
+vector<pair<float, int>> *Graph::getCandidates()
+{
+    createCandidates();
+    return this->candidates;
+}
+
+map<int, Node *> Graph::getNodeMap()
+{
+    return this->nodeMap;
 }
 
 /*
@@ -598,7 +618,7 @@ Metric Graph::relativeHeuristic()
     * @param string instanceName, nome da instância
     * @return void
  */
-void Graph::printConstructiveGreedy(string output, string instanceName)
+void Graph::printSolution(string output, string instanceName)
 {
     cout << "Iniciando algoritmo guloso construtivo" << endl;
     Metric metric = relativeHeuristic();

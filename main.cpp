@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "Graph.h"
+#include "aco.h"
 
 using namespace std;
 
@@ -33,9 +34,6 @@ Graph *readGraph(string filename)
 
         file >> aux >> sourceId >> targetId;
 
-        // Mudando o peso dos vértices apenas para comparação com o outro artigo
-        // A Fast and Robust Heuristic Algorithm for the Minimum Weight Vertex Cover Problem
-
         graph->addNode(sourceId, (sourceId % 200) + 1);
         graph->addNode(targetId, (targetId % 200) + 1);
 
@@ -59,7 +57,6 @@ Graph *readGraph(string filename)
 
 int main(int argc, char const *argv[])
 {
-
     string program_name = argv[0];
     string input_file = argv[1];
     string output_file = argv[2];
@@ -67,13 +64,9 @@ int main(int argc, char const *argv[])
     string instance = input_file.substr(input_file.find_last_of("/") + 1);
     instance = instance.substr(0, instance.find_last_of("."));
 
-    Graph *graphGreedy = readGraph(input_file);
-    cout << "Inteligencia Computacional - MWVC" << endl;
-    cout << "Instancia: " << instance << endl;
-    cout << "Numero de vertices: " << graphGreedy->getOrder() << endl;
-    cout << "Numero de arestas: " << graphGreedy->getNumberOfEdges() << endl;
-    cout << "Numero de iteracoes: " << numIter << endl;
-
+    Graph *graph = readGraph(input_file);
+    
+    aco(*graph, numIter, 10, 0.5, 1, 1);
     
     return 0;
 }
