@@ -2,6 +2,12 @@
 #include "Graph.h"
 #include <queue>
 #include <iostream>
+#include <vector>
+#include <stack>
+#include <algorithm>
+#include <map>
+#include <cmath>
+#include <random>
 
 map<int, Node *> nodeMap;
 map<int, vector<int>> openNeighborhoodMap;
@@ -80,6 +86,65 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
 
     vector<pair<float, int>> *candidates = graph.getCandidates();
     initializePheromones(graph, candidates);
-    initializeAnts(ants, nAnts, graph);
 
+    for (int i = 0; i < cycles; i++)
+    {
+        //distruibui as formigas
+        initializeAnts(ants, nAnts, graph);
+        /* for (int i = 0; i < steps; i++)
+        {
+            for (Ant &ant : ants)
+            {
+                int currentNodeId = ant.antSolution.back();
+                vector<int> openNeighborhood = openNeighborhoodMap[currentNodeId];
+                vector<pair<double, int>> probabilities;
+
+                for (int neighborId : openNeighborhood)
+                {
+                    Node *neighbor = nodeMap[neighborId];
+                    double pheromone = neighbor->getPheromone();
+                    double weight = neighbor->getWeight();
+                    double probability = pow(pheromone, alpha) * pow(weight, beta);
+                    probabilities.push_back(make_pair(probability, neighborId));
+                }
+
+                sort(probabilities.begin(), probabilities.end(), greater<pair<double, int>>());
+
+                double sum = 0;
+                for (pair<double, int> probability : probabilities)
+                {
+                    sum += probability.first;
+                }
+
+                for (pair<double, int> &probability : probabilities)
+                {
+                    probability.first /= sum;
+                }
+
+                double random = (double)rand() / RAND_MAX;
+                double cumulativeProbability = 0;
+                int chosenNode = -1;
+
+                for (pair<double, int> probability : probabilities)
+                {
+                    cumulativeProbability += probability.first;
+                    if (random <= cumulativeProbability)
+                    {
+                        chosenNode = probability.second;
+                        break;
+                    }
+                }
+
+                if (chosenNode == -1)
+                {
+                    chosenNode = probabilities.back().second;
+                }
+
+                ant.antSolution.push_back(chosenNode);
+                ant.solutionCost += nodeMap[chosenNode]->getWeight();
+            }
+        } */
+        
+    }
+    
 }
