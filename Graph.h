@@ -93,7 +93,7 @@ public:
     void createNeighborhoodMap();
     map<int, vector<int>> getNeighborhoodMap();
 
-        void printRelativeVector();
+    void printRelativeVector();
 
     void markNode(Node *node);
 

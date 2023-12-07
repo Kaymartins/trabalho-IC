@@ -7,12 +7,14 @@
 
 typedef struct{
     vector<int> antSolution;
-    double solutionCost;
+    float solutionCost;
     bool isBestSolution;
+    int positionFirstNode;
 } Ant;
 
-void initializePheromones(Graph &graph, vector<pair<float, int>> *candidates);
+/* void initializePheromones(Graph &graph, vector<pair<float, int>> *candidates);
 void updateGlobalPheromones(const vector<Ant> &ants, double evaporationRate);
 void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph);
-void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta);
+*/
+void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta); 
 #endif // ACO_H

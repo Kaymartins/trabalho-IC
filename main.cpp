@@ -65,7 +65,7 @@ int main(int argc, char const *argv[])
     instance = instance.substr(0, instance.find_last_of("."));
 
     Graph *graph = readGraph(input_file);
-    
+
     aco(*graph, numIter, 10, 0.5, 1, 1);
     
     return 0;

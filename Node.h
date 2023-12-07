@@ -38,7 +38,7 @@ public:
     int getNumberOfEdges();
     double getPheromone();
     double getInitialPheromone();
-    double setInitialPheromone(double initialPheromone);
+    void setInitialPheromone(double initialPheromone);
 
     bool hasEdgeTo(int targetId);
     bool isMarked();

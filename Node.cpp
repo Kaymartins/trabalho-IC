@@ -303,6 +303,6 @@ double Node::getInitialPheromone(){
     return this->initialPheromone;
 }
 
-double Node::setInitialPheromone(double initialPheromone){
+void Node::setInitialPheromone(double initialPheromone){
     this->initialPheromone = initialPheromone;
 }

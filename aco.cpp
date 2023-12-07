@@ -12,9 +12,9 @@
 map<int, Node *> nodeMap;
 map<int, vector<int>> openNeighborhoodMap;
 
-void initializePheromones(Graph &graph, vector<pair<float, int>> *candidates)
+void initializePheromones(Graph &graph, vector<pair<float, int>> *firstCandidates)
 {
-    for (pair<float, int> candidate : *candidates)
+    for (pair<float, int> candidate : *firstCandidates)
     {
         Node *node = nodeMap[candidate.second];
         node->setPheromone(1 / candidate.first);
@@ -22,17 +22,11 @@ void initializePheromones(Graph &graph, vector<pair<float, int>> *candidates)
     }
 }
 
-void updateLocalPheromones(vector<Ant> &ants, double phi)
+void updateLocalPheromones(int nodeId, double phi)
 {
-    for (Ant &ant : ants)
-    {
-        for (int nodeId : ant.antSolution)
-        {
-            Node *node = nodeMap[nodeId];
-            double newPheromone = (1 - phi) * node->getPheromone() + phi * node->getInitialPheromone();
-            node->setPheromone(newPheromone);
-        }
-    }
+    Node *node = nodeMap[nodeId];
+    double newPheromone = (1 - phi) * node->getPheromone() + phi * node->getInitialPheromone();
+    node->setPheromone(newPheromone);
 }
 
 void updateGlobalPheromones(vector<Ant> &ants, double evaporationRate)
@@ -60,91 +54,103 @@ void updateGlobalPheromones(vector<Ant> &ants, double evaporationRate)
     }
 }
 
-void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph)
+void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph, vector<pair<float, int>> &candidates)
 {
     srand(time(NULL)); // Inicializa a semente do gerador de números aleatórios
-
+    ants.clear();
     for (int i = 0; i < numberOfAnts; i++)
     {
         Ant ant;
         int randomNodeIndex = rand() % graph.getOrder(); // Escolhe um índice de nó aleatório
 
-        ant.antSolution.push_back(randomNodeIndex); // Usa o índice do nó
-        ant.solutionCost = nodeMap[randomNodeIndex]->getWeight();
-        ant.isBestSolution = false;
-
-        ants.push_back(ant);
+        if (nodeMap[randomNodeIndex]->getWeight() == 0)
+        {
+            ant.antSolution.push_back(randomNodeIndex); // Usa o índice do nó
+            ant.solutionCost = nodeMap[randomNodeIndex]->getWeight();
+            ant.isBestSolution = false;
+            ants.push_back(ant);
+            //achar a posicao do No encontrado na lista candidates
+            for (int j = 0; j < candidates.size(); j++)
+            {
+                if (candidates[j].second == randomNodeIndex)
+                {
+                    ant.positionFirstNode = j;
+                    break;
+                }
+            }
+        }
+        else
+            i--;
     }
 }
 
-void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta)
+vector<pair<float, int>> createCandidatesPheromones(int tamGraph)
+{
+    vector<pair<float, int>> candidates;
+    Node *node;
+
+    for(int i = 1; i <=tamGraph; i++)
+    {
+        node = nodeMap[i];
+        pair<float, int> candidate;
+        candidate.first = node->getPheromone();
+        candidate.second = node->getId();
+        candidates.push_back(candidate);
+    }
+        sort(candidates.begin(), candidates.end(),
+         [](pair<float, int> &a, pair<float, int> &b)
+         {
+             return a.first > b.first;
+         });
+    return candidates;
+}
+
+void updateCandidatesPheromones(vector<pair<float, int>> &candidates)
+{
+
+}
+
+    void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta)
 {
     vector<Ant> ants;
     int nAnts = graph.getOrder() * 0.25;
     openNeighborhoodMap = graph.getNeighborhoodMap();
     nodeMap = graph.getNodeMap();
 
-    vector<pair<float, int>> *candidates = graph.getCandidates();
-    initializePheromones(graph, candidates);
+    vector<pair<float, int>> *firstCandidates = graph.getCandidates();
+    initializePheromones(graph, firstCandidates);
+
+    vector<pair<float, int>> candidates = createCandidatesPheromones(graph.getOrder());
 
     for (int i = 0; i < cycles; i++)
     {
         //distruibui as formigas
-        initializeAnts(ants, nAnts, graph);
-        /* for (int i = 0; i < steps; i++)
+        initializeAnts(ants, nAnts, graph, candidates);
+        for (int i = 0; i < nAnts; i++)
         {
-            for (Ant &ant : ants)
+            Ant &ant = ants[i];
+
+            int bestNode = -1;
+            double bestNodeCost = 0;
+
+            int node = ant.antSolution.back();
+            graph.markNode(nodeMap[node]);
+            candidates.erase(candidates.begin() + ant.positionFirstNode);
+            candidates.shrink_to_fit();
+            while(!graph.isIsolated())
             {
-                int currentNodeId = ant.antSolution.back();
-                vector<int> openNeighborhood = openNeighborhoodMap[currentNodeId];
-                vector<pair<double, int>> probabilities;
-
-                for (int neighborId : openNeighborhood)
-                {
-                    Node *neighbor = nodeMap[neighborId];
-                    double pheromone = neighbor->getPheromone();
-                    double weight = neighbor->getWeight();
-                    double probability = pow(pheromone, alpha) * pow(weight, beta);
-                    probabilities.push_back(make_pair(probability, neighborId));
-                }
-
-                sort(probabilities.begin(), probabilities.end(), greater<pair<double, int>>());
-
-                double sum = 0;
-                for (pair<double, int> probability : probabilities)
-                {
-                    sum += probability.first;
-                }
-
-                for (pair<double, int> &probability : probabilities)
-                {
-                    probability.first /= sum;
-                }
-
-                double random = (double)rand() / RAND_MAX;
-                double cumulativeProbability = 0;
-                int chosenNode = -1;
-
-                for (pair<double, int> probability : probabilities)
-                {
-                    cumulativeProbability += probability.first;
-                    if (random <= cumulativeProbability)
-                    {
-                        chosenNode = probability.second;
-                        break;
-                    }
-                }
-
-                if (chosenNode == -1)
-                {
-                    chosenNode = probabilities.back().second;
-                }
-
-                ant.antSolution.push_back(chosenNode);
-                ant.solutionCost += nodeMap[chosenNode]->getWeight();
+                node = candidates[0].second;
+                ant.solutionCost += nodeMap[node]->getWeight();
+                graph.markNode(nodeMap[node]);
+                candidates.erase(candidates.begin());
+                candidates.shrink_to_fit();
+                ant.antSolution.push_back(node);
+                
             }
-        } */
-        
+        } 
+        graph.resetMarks();
+        updateGlobalPheromones(ants, evaporation);  
     }
     
 }
+
