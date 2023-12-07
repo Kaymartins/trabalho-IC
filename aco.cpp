@@ -105,9 +105,54 @@ vector<pair<float, int>> createCandidatesPheromones(int tamGraph)
     return candidates;
 }
 
-void updateCandidatesPheromones(vector<pair<float, int>> &candidates)
+void updateCandidatesPheromones(vector<pair<float, int>> &candidates,  Ant &ant, double q0, double beta)
 {
+        for (pair<float, int> &candidate : candidates)
+    {
+        double q = static_cast<double>(rand()) / RAND_MAX; // Valor aleatório entre 0 e 1
 
+        if (q < q0)
+        {
+            // Escolhe o vértice com a maior trilha de feromônio (exploração)
+            auto maxPheromone = max_element(candidates.begin(), candidates.end(),
+                                            [](const pair<float, int> &a, const pair<float, int> &b) {
+                                                return a.first < b.first;
+                                            });
+
+            candidate = *maxPheromone;
+        }
+        else
+        {
+            // Calcula a probabilidade de escolher cada vértice com base no feromônio e na heurística local
+            double sum = 0.0;
+            int currentNode = ant.antSolution.back();
+            double pheromone = nodeMap[currentNode]->getPheromone();
+            double heuristic = pow((nodeMap[currentNode]->getNumberOfUnmarkedEdges() / nodeMap[currentNode]->getWeight()), beta);
+            sum += pheromone * heuristic;
+            
+
+            for (pair<float, int> &candidate : candidates)
+            {
+                int candidateNode = candidate.second;
+                double pheromone = nodeMap[currentNode]->getPheromone();
+                double heuristic = pow((nodeMap[currentNode]->getNumberOfUnmarkedEdges() / nodeMap[currentNode]->getWeight()), beta);
+                double probability = (pheromone * heuristic) / sum;
+
+                candidate.first = probability;
+            }
+
+            // Escolhe o vértice com base na probabilidade calculada (exploração e/ou intensificação)
+            discrete_distribution<int> distribution(candidates.begin(), candidates.end());
+            int chosenIndex = distribution(default_random_engine());
+            candidate = candidates[chosenIndex];
+        }
+    }
+
+    // Ordena novamente a lista de candidatos com base nas probabilidades atualizadas
+    sort(candidates.begin(), candidates.end(),
+         [](pair<float, int> &a, pair<float, int> &b) {
+             return a.first > b.first;
+         });
 }
 
     void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta)
