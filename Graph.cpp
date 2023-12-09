@@ -326,6 +326,15 @@ void Graph::markNode(Node *node)
 }
 
 /*
+ * Função para decrementar o número de arestas não marcadas
+    * @return void
+ */
+void Graph::decrementUnmarkedEdges()
+{
+    this->uncoveredEdges--;
+}
+
+/*
  *Obtém os vizinhos de um nó, recebe o id do nó como parametro e retorna um vetor com os vizinhos do nó
     * @param id
     * @return vetor com os ids dos vizinhos do nó
@@ -359,6 +368,11 @@ vector<int> Graph::getNeighbors(int id)
 bool Graph::isIsolated()
 {
     return this->uncoveredEdges == 0;
+}
+
+int Graph::getUncoveredEdges()
+{
+    return this->uncoveredEdges;
 }
 
 /*
@@ -432,11 +446,15 @@ void Graph::createNeighborhoodMap()
 
 map<int, vector<int>> Graph::getNeighborhoodMap()
 {
-    if (this->openNeighborhoodMap.empty())
+    map<int, vector<int>> openNeighborhoodMap2;
+    Node *aux = firstNode;
+    while (aux != nullptr)
     {
-        createNeighborhoodMap();
+        vector<int> neighborhood = getOpenNeighborhood(aux->getId());
+        openNeighborhoodMap2.insert(pair<int, vector<int>>(aux->getId(), neighborhood));
+        aux = aux->getNextNode();
     }
-    return this->openNeighborhoodMap;
+    return openNeighborhoodMap2;
 }
 
     /*

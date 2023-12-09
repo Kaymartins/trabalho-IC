@@ -59,9 +59,12 @@ public:
     int getNumberOfEdges();
     Node *getFirstNode();
     Node *getLastNode();
+    int getUncoveredEdges();
     pair<int, int> getNodeDegree(int id);
     vector <pair<float, int>> *getCandidates();
     map<int, Node *> getNodeMap();
+
+    void decrementUnmarkedEdges();
 
     //métodos relacionados a caracteristicas do grafo
     

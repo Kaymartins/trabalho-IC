@@ -7,7 +7,7 @@
 
 typedef struct{
     vector<int> antSolution;
-    float solutionCost;
+    int solutionCost;
     bool isBestSolution;
     int positionFirstNode;
 } Ant;
