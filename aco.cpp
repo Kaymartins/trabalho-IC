@@ -106,7 +106,7 @@ vector<pair<float, int>> createCandidatesPheromones(int tamGraph)
 }
 
 
-void updateCandidatesPheromones(vector<pair<float, int>> &candidates, Ant &ant, double q0, double beta)
+void updateCandidatesPheromones(vector<pair<float, int>> &candidates, double q0, double beta)
 {
     double sum = 0.0;
     for (pair<float, int> &candidate : candidates)
