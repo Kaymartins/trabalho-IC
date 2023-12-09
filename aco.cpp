@@ -163,15 +163,17 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
     openNeighborhoodMap = graph.getNeighborhoodMap();
     nodeMap = graph.getNodeMap();
 
-    vector<pair<float, int>> *firstCandidates = graph.getCandidates();
-    initializePheromones(graph, firstCandidates);
-
-    vector<pair<float, int>> candidates = createCandidatesPheromones(graph.getOrder());
 
     for (int i = 0; i < cycles; i++)
     {
+
+        vector<pair<float, int>> *firstCandidates = graph.getCandidates();//pega todos os candidatos do grafo
+        initializePheromones(graph, firstCandidates);//deposita o feromonio inicial nos candidatos com base no peso relativo
+
+        vector<pair<float, int>> candidates = createCandidatesPheromones(graph.getOrder());//cria e ordena a lista de candidatos com base no feromonio inicial
+
         //distruibui as formigas
-        initializeAnts(ants, nAnts, graph, candidates);
+        initializeAnts(ants, nAnts, graph, candidates); //inicializa todas as formigas em um nó aleatorio
         for (int i = 0; i < nAnts; i++)
         {
             Ant &ant = ants[i];
