@@ -106,7 +106,7 @@ vector<pair<float, int>> createCandidatesPheromones(int tamGraph)
 }
 
 
-void updateCandidatesPheromones(vector<pair<float, int>> &candidates, double q0, double beta)
+void updateCandidatesProbabilities(vector<pair<float, int>> &candidates, double q0, double beta)
 {
     double sum = 0.0;
     for (pair<float, int> &candidate : candidates)
@@ -178,22 +178,58 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
         {
             Ant &ant = ants[i];
 
-            int bestNode = -1;
-            double bestNodeCost = 0;
+            vector<int> bestSolution;
+            double bestSolutionCost = std::numeric_limits<double>::max();
+            Ant* bestAnt = nullptr; //ponteiro para a melhor formiga
 
             int node = ant.antSolution.back();
             graph.markNode(nodeMap[node]);
+            //remove o primeiro nó da lista de candidates com base na posição dele na lista.
             candidates.erase(candidates.begin() + ant.positionFirstNode);
             candidates.shrink_to_fit();
             while(!graph.isIsolated())
             {
-                node = candidates[0].second;
+                //seleciona um candidato com base na roleta
+                double sum_of_fitness = std::accumulate(candidates.begin(), candidates.end(), 0.0,
+                                                        [](double sum, const std::pair<float, int>& candidate) {
+                                                            return sum + candidate.first;
+                                                        });
+
+                double roulette = static_cast<double>(rand()) / RAND_MAX;
+                double partialSum = 0.0;
+                int selected_candidate_position = -1;
+                //obtém posição do candidato selecionado
+                for (int i = 0; i < candidates.size(); i++)
+                {
+                    partialSum += candidates[i].first / sum_of_fitness;
+                    if (partialSum >= roulette)
+                    {
+                        selected_candidate_position = i;
+                        break;
+                    }
+                }
+
+                node = candidates[selected_candidate_position].second;
                 ant.solutionCost += nodeMap[node]->getWeight();
                 graph.markNode(nodeMap[node]);
-                candidates.erase(candidates.begin());
+                candidates.erase(candidates.begin() + selected_candidate_position);
                 candidates.shrink_to_fit();
                 ant.antSolution.push_back(node);
-                
+
+                //atualiza a lista de candidatos com base no feromonio e na heuristica local
+                updateCandidatesProbabilities(candidates, 0.5, beta);
+            }
+
+            if(ant.solutionCost < bestSolutionCost)
+            {
+                if(bestAnt != nullptr){
+                    bestAnt->isBestSolution = false;
+                }
+
+                bestSolutionCost = ant.solutionCost;
+                bestSolution = ant.antSolution;
+                bestAnt = &ant;
+                bestAnt->isBestSolution = true;
             }
         } 
         graph.resetMarks();
