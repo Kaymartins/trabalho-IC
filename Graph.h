@@ -98,17 +98,6 @@ public:
     void updateCandidates(int removedNodeId);
     void createNeighborhoodMap();
     map<int, vector<int>> getNeighborhoodMap();
-
-    void printRelativeVector();
-
-    void markNode(Node *node);
-
-    //Métodos relacionados a heurística do peso relativo
-
-    Metric relativeHeuristic();
-    
-    //prints
-    void printSolution(string output, string instanceName);
 };
 
 #endif // GRAPH_H_INCLUDED

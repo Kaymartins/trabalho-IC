@@ -336,7 +336,7 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
                 ant.antSolution.push_back(node);
                 // atualiza a lista de candidatos com base no feromonio e na heuristica local
                 // cout << "aqui" << endl;
-                //updateLocalPheromones(node, 0.5);
+                updateLocalPheromones(node, 0.5);
                 updateCandidatesProbabilities(auxCandidates, 0.5, beta, graph.getUncoveredEdges());
                 // cout << "aqui2" << endl;
                 validSolution = isGraphIsolated(*neighborhoodNotMarkedMap);
@@ -358,11 +358,5 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
         updateGlobalPheromones(ants, evaporation);
     }
 
-    cout << "Melhor solução: " << endl;
-    for (int i = 0; i < bestAnt.antSolution.size(); i++)
-    {
-        cout << bestAnt.antSolution[i] << " ";
-    }
-    cout << endl;
     cout << "Custo da melhor solução: " << bestAnt.solutionCost << endl;
 }

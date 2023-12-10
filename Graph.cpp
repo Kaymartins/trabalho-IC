@@ -328,30 +328,6 @@ void Graph::resetMarks()
 }
 
 /*
- * Função para marcar um vértice e suas arestas que saem dele
-    * @param node nó a ser marcado
-    * @return void
- */
-void Graph::markNode(Node *node)
-{
-    node->setMarked(true);
-    node->setNumberOfUnmarkedEdges(0);
-    const vector<int> &neighbors = this->openNeighborhoodMap[node->getId()];
-
-    int size = neighbors.size();
-    int i = 0;
-    for (int neighbor : neighbors)
-    {
-        Node *neighborNode = this->nodeMap[neighbor];
-        if (!neighborNode->isMarked())
-        {
-            neighborNode->decrementUnmarkedEdges();
-            this->uncoveredEdges--;
-        }
-    }
-}
-
-/*
  * Função para decrementar o número de arestas não marcadas
     * @return void
  */
@@ -532,22 +508,6 @@ map<int, Node *> Graph::getNodeMap()
 }
 
 /*
- * Função que imprime o vetor de pesos relativos
-    * @return void
- */
-
-void Graph::printRelativeVector()
-{
-    ofstream myfile;
-    myfile.open("relativeVector.txt", ios::trunc);
-    for (int i = 0; i < candidates->size(); i++)
-    {
-        myfile << (*candidates)[i].first << " " << (*candidates)[i].second << endl;
-    }
-    myfile.close();
-}
-
-/*
  * Função que atualiza o vetor de pesos relativos
  * Quando um vértice é removido, o peso relativo dos seus vizinhos é atualizado
  *
@@ -591,95 +551,4 @@ void Graph::updateCandidates(int removedNodeId)
          {
              return a.first < b.first;
          });
-}
-
-/*
- * Algoritmo Guloso Construtivo
- * Utiliza a heurística do peso relativo para construir uma solução viável
-    * @return Metric, que indica o tempo de execução do algoritmo, o peso da solução e o número de nós presentes na solução	  
- */
-Metric Graph::relativeHeuristic()
-{
-    std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
-    start = chrono::high_resolution_clock::now();
-    createNeighborhoodMap();
-
-    // Conjunto solução inicial
-    map<int, bool> solution;
-    vector<int> solutionVector;
-
-    for (int i = 0; i < this->getOrder(); i++)
-    {
-        solution.insert(make_pair(i, false));
-    }
-
-    createCandidates();
-
-    bool viable = false;
-    int firstHeuristcNode = candidates->front().second;
-    float totalWeight = 0;
-    int iterations = 0;
-    while (!candidates->empty())
-    {
-        // Coloca o vértice na solução
-        Node *node = nodeMap[firstHeuristcNode];
-        solution[firstHeuristcNode] = true;
-        solutionVector.push_back(firstHeuristcNode);
-        totalWeight += node->getWeight();
-
-        // Marca o vértice
-        this->markNode(node);
-
-        // Verifica se a solução é viável
-        if (this->isIsolated())
-        {
-            viable = true;
-            break;
-        }
-
-        candidates->erase(candidates->begin());
-        candidates->shrink_to_fit();
-
-        if (!candidates->empty())
-        {
-            updateCandidates(firstHeuristcNode);
-            firstHeuristcNode = candidates->front().second;
-        }
-    }
-    this->resetMarks();
-
-    end = chrono::high_resolution_clock::now();
-    float elapse_time = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-
-    Metric metric;
-    metric.time = elapse_time;
-    metric.totalWeight = totalWeight;
-    metric.numberOfNodes = solutionVector.size();
-    // Reseta os vértices para não marcados para gerar outras soluções
-    this->resetMarks();
-    return metric;
-}
-
-/*
- *  Função que imprime os resultados do algoritmo guloso construtivo no arquivo de saída
-    * @param string output, nome do arquivo de saída
-    * @param string instanceName, nome da instância
-    * @return void
- */
-void Graph::printSolution(string output, string instanceName)
-{
-    cout << "Iniciando algoritmo guloso construtivo" << endl;
-    Metric metric = relativeHeuristic();
-    cout << "Algoritmo guloso construtivo finalizado, resultados em: " << output << endl;
-    ofstream file;
-    file.open(output);
-    file << "=============================" << endl;
-    file << "Algoritimo Guloso Construtivo - " + instanceName << endl;
-    file << "Tamanho da solução: " << metric.numberOfNodes << endl;
-    file << "Peso total da solução: " << metric.totalWeight << endl;
-    file << "Tempo de execução (ms): " << metric.time << endl;
-    file << "=============================" << endl;
-
-    file << endl;
-    file.close();
 }
