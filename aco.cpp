@@ -323,7 +323,7 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
                 
                 if(auxCandidates.size() == 0)
                 {
-                    cout << "Candidatos vazios" << endl;
+                    // cout << "Candidatos vazios" << endl;
                     break;
                 }
                 // cout << "posicao do candidato selecionado: " << selected_candidate_position << endl;
