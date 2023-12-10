@@ -241,21 +241,58 @@ vector<pair<pair<float, float>, int>> createCandidates()
 
         candidate.first.second = node.second->getWeight() / node.second->getNumberOfEdges();
         candidate.second = node.second->getId();
-        node.second->setInitialPheromone(1 / candidate.first.second);
-        candidate.first.first = 1 / candidate.first.second;
+        node.second->setInitialPheromone(1);
+        candidate.first.first = 1;
         candidates.push_back(candidate);
     }
 
-    sort(candidates.begin(), candidates.end(),
+/*     sort(candidates.begin(), candidates.end(),
          [](pair<pair<float, float>, int> &a, pair<pair<float, float>, int> &b)
          {
-             return a.first.first > b.first.first;
-         });
+             return a.first.second > b.first.second;
+         }); */
 
     return candidates;
 }
 
-void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta)
+void updateCandidates(int removedNodeId, vector < pair<pair<float, float>, int>> &candidates, map<int, int> &neighborhoodNotMarkedMap)
+{
+    if (candidates.size() == 0)
+    {
+        return;
+    }
+    const vector<int> &neighbors = openNeighborhoodMap[removedNodeId];
+
+    for (int i = 0; i < neighbors.size(); i++)
+    {
+        int neighborId = neighbors[i];
+
+        // Encontra o índice do vizinho no vetor de pesos relativos
+        auto it = find_if(candidates.begin(), candidates.end(),
+                          [neighborId](const pair<pair<float, float>, int> &nodeWeight)
+                          {
+                              return nodeWeight.second == neighborId;
+                          });
+
+        if (it != candidates.end())
+        {
+            // Obtém o índice do vizinho
+            int index = distance(candidates.begin(), it);
+
+            // Atualize o peso relativo do vizinho
+            candidates.at(index).first.first = nodeMap[neighborId]->getWeight() / neighborhoodNotMarkedMap[removedNodeId];
+        }
+    }
+
+/*     // Ordena novamente o vetor de pesos relativos em ordem decrescente
+    sort(candidates.begin(), candidates.end(),
+         [](pair<pair<float, float>, int> &a, pair<pair<float, float>, int> &b)
+         {
+             return a.first.first > b.first.first;
+         }); */
+}
+
+    void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta)
 {
     vector<Ant> ants;
     double bestSolutionCost = std::numeric_limits<double>::max();
@@ -303,7 +340,7 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
 
                 double roulette = static_cast<double>(rand()) / RAND_MAX;
                 double partialSum = 0.0;
-                int selected_candidate_position = -1;
+                int selected_candidate_position = 0;
                 // obtém posição do candidato selecionado
                 for (int i = 0; i < candidates.size(); i++)
                 {
@@ -313,9 +350,6 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
                         selected_candidate_position = i;
                         break;
                     }
-                }
-                if(selected_candidate_position == -1){
-                    selected_candidate_position = 0;
                 }
 
                 if (candidates.size() == 0)
@@ -332,6 +366,7 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
                 ant.antSolution.push_back(node);
 
                 //updateLocalPheromones(node, 0.5);
+                updateCandidates(node, candidates, *neighborhoodNotMarkedMap);
                 updateCandidatesProbabilities(candidates, 0.5, beta, uncoveredEdges);
                 validSolution = isGraphIsolated(*neighborhoodNotMarkedMap);
             }
