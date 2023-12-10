@@ -27,7 +27,6 @@ void initializePheromones(Graph &graph, vector<pair<float, int>> *firstCandidate
     {
         Node *node = nodeMap[candidate.second];
         node->setPheromone(1 / candidate.first);
-        cout << "Pheromone " << i << " " << node->getPheromone() << endl;
         i++;
     }
 }
@@ -87,8 +86,6 @@ void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph, vector<pa
                 ant.positionFirstNode = j;
                 break;
             }
-            candidates.erase(candidates.begin() + ant.positionFirstNode);
-            candidates.shrink_to_fit();
         }
     }
 }
@@ -104,7 +101,6 @@ vector<pair<float,int>> createCandidatesPheromones(vector<pair<float, int>> *fir
     {
         node = nodeMap[candidate.second];
         int j;
-        cout << "Node " << i << " " << node->getPheromone() << endl;
         candidate.first = node->getPheromone();
         candidate.second = node->getId();
         candidates.push_back(candidate);
@@ -248,6 +244,7 @@ void resetMarks(Graph &graph, map<int, int> &neighborhoodNotMarkedMap)
 void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta)
 {
     vector<Ant> ants;
+    double bestSolutionCost = std::numeric_limits<double>::max();
     int nAnts = graph.getOrder() * 0.25;
     openNeighborhoodMap = graph.getNeighborhoodMap();
     nodeMap = graph.getNodeMap();
@@ -257,31 +254,37 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
 
     for (int i = 0; i < cycles; i++)
     {
+        cout << "Ciclo " << i << endl;
         vector<pair<float, int>> *firstCandidates = graph.getCandidates();                  // pega todos os candidatos do grafo
         initializePheromones(graph, firstCandidates);                                       // deposita o feromonio inicial nos candidatos com base no peso relativo
         vector<pair<float, int>> candidates = createCandidatesPheromones(firstCandidates); // cria e ordena a lista de candidatos com base no feromonio inicial
         //percorre lista de candidatos e imprime candidates.first
-        for(int i = 0; i < candidates.size(); i++)
-        {
-            cout << candidates[i].first << " ";
-        }
+
         // for (int i = 0; i < candidates.size(); i++)
         initializeAnts(ants, nAnts, graph, candidates); // inicializa todas as formigas em um nó aleatorio
         
         for (int i = 0; i < nAnts; i++)
         {
+            vector<pair<float, int>> auxCandidates = createCandidatesPheromones(&candidates);
+            // cout << "Tamanho da lista de candidatos: " << auxCandidates.size() << endl;
+            // for(int j = 0; j < auxCandidates.size(); j++)
+            // {
+            //     cout << auxCandidates[j].first << " ";
+            //     cout << auxCandidates[j].second << endl;
+            //     cout << endl;
+            // }
+
             cout << "Formiga " << i << endl;
             Ant &ant = ants[i];
             int numberOfEdgesCovered = 0.00;
             vector<int> bestSolution;
-            double bestSolutionCost = std::numeric_limits<double>::max();
             // Ant *bestAnt = nullptr; // ponteiro para a melhor formiga
             int node = ant.antSolution.back();
             ant.solutionCost = nodeMap[node]->getWeight();
             markNode(nodeMap[node], graph, *neighborhoodNotMarkedMap);
             // remove o primeiro nó da lista de candidates com base na posição dele na lista.
-            candidates.erase(candidates.begin() + ant.positionFirstNode);
-            candidates.shrink_to_fit();
+            auxCandidates.erase(auxCandidates.begin() + ant.positionFirstNode);
+            auxCandidates.shrink_to_fit();
 
             bool validSolution = false;
 
@@ -289,19 +292,19 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
             {
                 // cout << "entrou no while" << endl;
                 // seleciona um candidato com base na roleta
-                double sum_of_fitness = std::accumulate(candidates.begin(), candidates.end(), 0.0,
-                                                        [](double sum, const std::pair<float, int> &candidate)
+                double sum_of_fitness = std::accumulate(auxCandidates.begin(), auxCandidates.end(), 0.0,
+                                                        [](double sum, const std::pair<float, int> &auxCandidates)
                                                         {
-                                                            return sum + candidate.first;
+                                                            return sum + auxCandidates.first;
                                                         });
 
                 double roulette = static_cast<double>(rand()) / RAND_MAX;
                 double partialSum = 0.0;
                 int selected_candidate_position = -1;
                 // obtém posição do candidato selecionado
-                for (int i = 0; i < candidates.size(); i++)
+                for (int i = 0; i < auxCandidates.size(); i++)
                 {
-                    partialSum += candidates[i].first / sum_of_fitness;
+                    partialSum += auxCandidates[i].first / sum_of_fitness;
                     // cout << "i: " << i << endl;
                     // cout << "sum_of_fitness: " << sum_of_fitness << endl;
                     // cout << "partialSum: " << partialSum << endl;
@@ -313,22 +316,27 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
                         break;
                     }
                 }
-                // cout << "posicao do candidato selecionado: " << selected_candidate_position << endl;
-                if(candidates.size() == 0)
+                if(selected_candidate_position == -1){
+                    selected_candidate_position = 0;
+                }
+                
+                if(auxCandidates.size() == 0)
                 {
-                    // cout << "Candidatos vazios" << endl;
+                    cout << "Candidatos vazios" << endl;
                     break;
                 }
+                // cout << "posicao do candidato selecionado: " << selected_candidate_position << endl;
 
-                node = candidates[selected_candidate_position].second;
+                node = auxCandidates[selected_candidate_position].second;
                 ant.solutionCost += nodeMap[node]->getWeight();
                 markNode(nodeMap[node], graph, *neighborhoodNotMarkedMap);
-                candidates.erase(candidates.begin() + selected_candidate_position);
-                candidates.shrink_to_fit();
+                auxCandidates.erase(auxCandidates.begin() + selected_candidate_position);
+                auxCandidates.shrink_to_fit();
                 ant.antSolution.push_back(node);
                 // atualiza a lista de candidatos com base no feromonio e na heuristica local
                 // cout << "aqui" << endl;
-                updateCandidatesProbabilities(candidates, 0.5, beta, graph.getUncoveredEdges());
+                //updateLocalPheromones(node, 0.5);
+                updateCandidatesProbabilities(auxCandidates, 0.5, beta, graph.getUncoveredEdges());
                 // cout << "aqui2" << endl;
                 validSolution = isGraphIsolated(*neighborhoodNotMarkedMap);
             }
@@ -337,6 +345,7 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
                 bestSolutionCost = ant.solutionCost;
                 bestSolution = ant.antSolution;
                 bestAnt = ant;
+                bestAnt.isBestSolution = true;
             }
             else
             {
@@ -344,26 +353,15 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
             }
             resetMarks(graph, *neighborhoodNotMarkedMap);
         }
-        // cout << "Melhor custo: " << bestAnt.solutionCost << endl;
-        // cout << "Melhor solucao: ";
-        // for (int i = 0; i < bestAnt.antSolution.size(); i++)
-        // {
-        //     // cout << bestAnt.antSolution[i] << " ";
-        // }
 
         updateGlobalPheromones(ants, evaporation);
     }
 
-    /* for (int i = 0; i < ants.size(); i++)
+    cout << "Melhor solução: " << endl;
+    for (int i = 0; i < bestAnt.antSolution.size(); i++)
     {
-        cout << "Ant " << i << ": ";
-        for (int j = 0; j < ants[i].antSolution.size(); j++)
-        {
-            cout << ants[i].antSolution[j] << " ";
-        }
-        cout << "Cost: " << ants[i].solutionCost << " IsBestSolution: " << ants[i].isBestSolution << endl;
-        cout << "------------------------------------";
-        cout << endl;
-    } */
-    
+        cout << bestAnt.antSolution[i] << " ";
+    }
+    cout << endl;
+    cout << "Custo da melhor solução: " << bestAnt.solutionCost << endl;
 }
