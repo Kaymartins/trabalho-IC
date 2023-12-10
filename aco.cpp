@@ -87,6 +87,8 @@ void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph, vector<pa
                 ant.positionFirstNode = j;
                 break;
             }
+            candidates.erase(candidates.begin() + ant.positionFirstNode);
+            candidates.shrink_to_fit();
         }
     }
 }
@@ -344,12 +346,12 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
         }
         // cout << "Melhor custo: " << bestAnt.solutionCost << endl;
         // cout << "Melhor solucao: ";
-        for (int i = 0; i < bestAnt.antSolution.size(); i++)
-        {
-            // cout << bestAnt.antSolution[i] << " ";
-        }
+        // for (int i = 0; i < bestAnt.antSolution.size(); i++)
+        // {
+        //     // cout << bestAnt.antSolution[i] << " ";
+        // }
 
-        //updateGlobalPheromones(ants, evaporation);
+        updateGlobalPheromones(ants, evaporation);
     }
 
     /* for (int i = 0; i < ants.size(); i++)
