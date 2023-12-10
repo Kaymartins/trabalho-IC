@@ -67,7 +67,11 @@ int main(int argc, char const *argv[])
     Graph *graph = readGraph(input_file);
 
     //graph->printGraph();
+    std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+    start = chrono::high_resolution_clock::now();
     aco(*graph, numIter, 10, 0.5, 0.5, 0.5);
-    
+    end = chrono::high_resolution_clock::now();
+    float elapse_time = chrono::duration_cast<chrono::seconds>(end - start).count();
+    cout << "Time: " << elapse_time << "s" << endl;
     return 0;
 }
