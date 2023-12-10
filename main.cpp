@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
-#include "Graph.h"
-#include "aco.h"
+#include "src/Graph.h"
+#include "aco/aco.h"
 
 using namespace std;
 

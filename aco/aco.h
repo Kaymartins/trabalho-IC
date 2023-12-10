@@ -1,7 +1,7 @@
 #ifndef ACO_H
 #define ACO_H
 
-#include "Graph.h"
+#include "../src/Graph.h"
 #include <queue>
 #include <iostream>
 

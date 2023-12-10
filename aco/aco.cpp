@@ -1,5 +1,5 @@
 #include "aco.h"
-#include "Graph.h"
+#include "../src/Graph.h"
 #include <queue>
 #include <iostream>
 #include <vector>
@@ -17,6 +17,80 @@ void createNumberOfNeighborhoodNotMarkedMap(map<int, int> &markedMap)
     for (auto &node : nodeMap)
     {
         markedMap[node.first] = node.second->getNumberOfUnmarkedEdges();
+    }
+}
+
+bool isGraphIsolated(map<int, int> &neighborhoodNotMarkedMap)
+{
+    bool isIsolated = true;
+    for (auto &node : neighborhoodNotMarkedMap)
+    {
+        if (node.second > 0)
+        {
+            isIsolated = false;
+            break;
+        }
+    }
+    return isIsolated;
+}
+
+void markNode(Node *node, Graph &graph, map<int, int> &neighborhoodNotMarkedMap)
+{
+    vector<int> neighbors = openNeighborhoodMap[node->getId()];
+    int i;
+    node->setMarked(true);
+    neighborhoodNotMarkedMap[node->getId()] = 0;
+    for (int neighbor : neighbors)
+    {
+        Node *neighborNode = nodeMap[neighbor];
+        if (!neighborNode->isMarked())
+        {
+            neighborhoodNotMarkedMap[neighbor]--;
+            graph.decrementUnmarkedEdges(1);
+        }
+    }
+}
+
+void resetMarks(Graph &graph, map<int, int> &neighborhoodNotMarkedMap)
+{
+    for (auto &node : nodeMap)
+    {
+        node.second->setMarked(false);
+        node.second->setNumberOfUnmarkedEdges(node.second->getNumberOfEdges());
+    }
+
+    for (auto &node : neighborhoodNotMarkedMap)
+    {
+        node.second = nodeMap[node.first]->getNumberOfUnmarkedEdges();
+    }
+
+    graph.setUncoveredEdges(graph.getNumberOfEdges());
+}
+
+void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph, vector<pair<float, int>> &candidates)
+{
+    srand(time(NULL)); // Inicializa a semente do gerador de números aleatórios
+    ants.clear();
+    for (int i = 0; i < numberOfAnts; i++)
+    {
+        Ant ant;
+        int randomNodeIndex = rand() % graph.getOrder(); // Escolhe um índice de nó aleatório
+        if (randomNodeIndex == 0)
+            randomNodeIndex = 1;
+
+        ant.antSolution.push_back(randomNodeIndex); // Usa o índice do nó
+        ant.solutionCost = nodeMap[randomNodeIndex]->getWeight();
+        ant.isBestSolution = false;
+        ants.push_back(ant);
+        // achar a posicao do No encontrado na lista candidates
+        for (int j = 0; j < candidates.size(); j++)
+        {
+            if (candidates[j].second == randomNodeIndex)
+            {
+                ant.positionFirstNode = j;
+                break;
+            }
+        }
     }
 }
 
@@ -58,33 +132,6 @@ void updateGlobalPheromones(vector<Ant> &ants, double evaporationRate)
                 Node *node = nodeMap[nodeId];
                 double newPheromone = (1 - evaporationRate) * node->getPheromone();
                 node->setPheromone(newPheromone);
-            }
-        }
-    }
-}
-
-void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph, vector<pair<float, int>> &candidates)
-{
-    srand(time(NULL)); // Inicializa a semente do gerador de números aleatórios
-    ants.clear();
-    for (int i = 0; i < numberOfAnts; i++)
-    {
-        Ant ant;
-        int randomNodeIndex = rand() % graph.getOrder(); // Escolhe um índice de nó aleatório
-        if (randomNodeIndex == 0)
-            randomNodeIndex = 1;
-
-        ant.antSolution.push_back(randomNodeIndex); // Usa o índice do nó
-        ant.solutionCost = nodeMap[randomNodeIndex]->getWeight();
-        ant.isBestSolution = false;
-        ants.push_back(ant);
-        // achar a posicao do No encontrado na lista candidates
-        for (int j = 0; j < candidates.size(); j++)
-        {
-            if (candidates[j].second == randomNodeIndex)
-            {
-                ant.positionFirstNode = j;
-                break;
             }
         }
     }
@@ -193,64 +240,36 @@ void updateCandidatesProbabilities(vector<pair<float, int>> &candidates, double 
               });
 }
 
-void markNode(Node *node, Graph &graph, map<int, int> &neighborhoodNotMarkedMap)
+vector<pair<float, int>> createFirstCandidates()
 {
-    vector<int> neighbors = openNeighborhoodMap[node->getId()];
-    int i;
-    node->setMarked(true);
-    neighborhoodNotMarkedMap[node->getId()] = 0;
-    for (int neighbor : neighbors)
-    {
-        Node *neighborNode = nodeMap[neighbor];
-        if (!neighborNode->isMarked())
-        {
-            neighborhoodNotMarkedMap[neighbor]--;
-            graph.decrementUnmarkedEdges(1);
-        }
-    }
-}
-
-bool isGraphIsolated(map<int, int> &neighborhoodNotMarkedMap)
-{
-    bool isIsolated = true;
-    for (auto &node : neighborhoodNotMarkedMap)
-    {
-        if (node.second > 0)
-        {
-            isIsolated = false;
-            break;
-        }
-    }
-    return isIsolated;
-}
-
-void resetMarks(Graph &graph, map<int, int> &neighborhoodNotMarkedMap)
-{
+    vector<pair<float, int>> candidates;
+    Node *node;
     for (auto &node : nodeMap)
     {
-        node.second->setMarked(false);
-        node.second->setNumberOfUnmarkedEdges(node.second->getNumberOfEdges());
-    }
-    
-    for (auto &node : neighborhoodNotMarkedMap)
-    {
-        node.second = nodeMap[node.first]->getNumberOfUnmarkedEdges();
+        node.second->setInitialPheromone(1 / node.second->getWeight());
+        pair<float, int> candidate;
+        candidate.first = node.second->getInitialPheromone();
+        candidate.second = node.second->getId();
+        candidates.push_back(candidate);
     }
 
-    graph.setUncoveredEdges(graph.getNumberOfEdges());
+    sort(candidates.begin(), candidates.end(),
+        [](pair<float, int> &a, pair<float, int> &b)
+        {
+            return a.first > b.first;
+        });
 }
-
 
 void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta)
 {
     vector<Ant> ants;
+    Ant bestAnt;
     double bestSolutionCost = std::numeric_limits<double>::max();
     int nAnts = graph.getOrder() * 0.25;
     openNeighborhoodMap = graph.getNeighborhoodMap();
     nodeMap = graph.getNodeMap();
     map<int, int> * neighborhoodNotMarkedMap = new map<int, int>();
     createNumberOfNeighborhoodNotMarkedMap(*neighborhoodNotMarkedMap);
-    Ant bestAnt;
 
     for (int i = 0; i < cycles; i++)
     {
@@ -266,19 +285,11 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
         for (int i = 0; i < nAnts; i++)
         {
             vector<pair<float, int>> auxCandidates = createCandidatesPheromones(&candidates);
-            // cout << "Tamanho da lista de candidatos: " << auxCandidates.size() << endl;
-            // for(int j = 0; j < auxCandidates.size(); j++)
-            // {
-            //     cout << auxCandidates[j].first << " ";
-            //     cout << auxCandidates[j].second << endl;
-            //     cout << endl;
-            // }
 
             cout << "Formiga " << i << endl;
             Ant &ant = ants[i];
             int numberOfEdgesCovered = 0.00;
             vector<int> bestSolution;
-            // Ant *bestAnt = nullptr; // ponteiro para a melhor formiga
             int node = ant.antSolution.back();
             ant.solutionCost = nodeMap[node]->getWeight();
             markNode(nodeMap[node], graph, *neighborhoodNotMarkedMap);
