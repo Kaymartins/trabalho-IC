@@ -20,14 +20,76 @@ void createNumberOfNeighborhoodNotMarkedMap(map<int, int> &markedMap)
     }
 }
 
-void initializePheromones(Graph &graph, vector<pair<float, int>> *firstCandidates)
+void markNode(Node *node, map<int, int> &neighborhoodNotMarkedMap)
 {
-    int i = 1;
-    for (pair<float, int> candidate : *firstCandidates)
+    vector<int> neighbors = openNeighborhoodMap[node->getId()];
+    int i;
+    node->setMarked(true);
+    neighborhoodNotMarkedMap[node->getId()] = 0;
+    for (int neighbor : neighbors)
     {
-        Node *node = nodeMap[candidate.second];
-        node->setPheromone(1 / candidate.first);
-        i++;
+        Node *neighborNode = nodeMap[neighbor];
+        if (!neighborNode->isMarked())
+        {
+            neighborhoodNotMarkedMap[neighbor]--;
+        }
+    }
+}
+
+bool isGraphIsolated(map<int, int> &neighborhoodNotMarkedMap)
+{
+    bool isIsolated = true;
+    for (auto &node : neighborhoodNotMarkedMap)
+    {
+        if (node.second > 0)
+        {
+            isIsolated = false;
+            break;
+        }
+    }
+    return isIsolated;
+}
+
+void resetMarks(map<int, int> &neighborhoodNotMarkedMap)
+{
+    for (auto &node : nodeMap)
+    {
+        node.second->setMarked(false);
+        node.second->setNumberOfUnmarkedEdges(node.second->getNumberOfEdges());
+    }
+
+    for (auto &node : neighborhoodNotMarkedMap)
+    {
+        node.second = nodeMap[node.first]->getNumberOfUnmarkedEdges();
+    }
+
+}
+
+void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph, vector<pair<pair<float, float>, int>> &candidates)
+{
+    srand(time(NULL)); // Inicializa a semente do gerador de números aleatórios
+    ants.clear();
+    for (int i = 0; i < numberOfAnts; i++)
+    {
+        Ant ant;
+        int randomNodeIndex = rand() % candidates.size(); // Escolhe um índice de nó aleatório
+        if (randomNodeIndex == 0)
+            randomNodeIndex = 1;
+
+        ant.antSolution.push_back(randomNodeIndex); // Usa o índice do nó
+        ant.solutionCost = nodeMap[randomNodeIndex]->getWeight();
+        ant.isBestSolution = false;
+
+        // achar a posicao do No encontrado na lista candidates
+        for (int j = 0; j < candidates.size(); j++)
+        {
+            if (candidates[j].second == randomNodeIndex)
+            {
+                ant.positionFirstNode = j;
+                break;
+            }
+        }
+        ants.push_back(ant);
     }
 }
 
@@ -60,34 +122,6 @@ void updateGlobalPheromones(vector<Ant> &ants, double evaporationRate)
                 node->setPheromone(newPheromone);
             }
         }
-    }
-}
-
-void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph, vector<pair<float, int>> &candidates)
-{
-    srand(time(NULL)); // Inicializa a semente do gerador de números aleatórios
-    ants.clear();
-    for (int i = 0; i < numberOfAnts; i++)
-    {
-        Ant ant;
-        int randomNodeIndex = rand() % candidates.size(); // Escolhe um índice de nó aleatório
-        if (randomNodeIndex == 0)
-            randomNodeIndex = 1;
-
-        ant.antSolution.push_back(randomNodeIndex); // Usa o índice do nó
-        ant.solutionCost = nodeMap[randomNodeIndex]->getWeight();
-        ant.isBestSolution = false;
-        
-        // achar a posicao do No encontrado na lista candidates
-        for (int j = 0; j < candidates.size(); j++)
-        {
-            if (candidates[j].second == randomNodeIndex)
-            {
-                ant.positionFirstNode = j;
-                break;
-            }
-        }
-        ants.push_back(ant);
     }
 }
 
@@ -142,10 +176,10 @@ vector<pair<float,int>> createCandidatesPheromones(vector<pair<float, int>> *fir
 
 // }
 
-void updateCandidatesProbabilities(vector<pair<float, int>> &candidates, double q0, double beta, int uncoveredEdges)
+void updateCandidatesProbabilities(vector<pair<pair<float,float>, int>> &candidates, double q0, double beta, int uncoveredEdges)
 {
     double sum = 0.0;
-    for (pair<float, int> &candidate : candidates)
+    for (pair<pair<float, float>, int> &candidate : candidates)
     {
         int candidateNode = candidate.second;
         double pheromone = nodeMap[candidateNode]->getPheromone();
@@ -153,7 +187,7 @@ void updateCandidatesProbabilities(vector<pair<float, int>> &candidates, double 
         sum += pheromone * heuristic;
     }
 
-    for (pair<float, int> &candidate : candidates)
+    for (pair<pair<float, float>, int> &candidate : candidates)
     {
         double q = static_cast<double>(rand()) / RAND_MAX; // Valor aleatório entre 0 e 1
         int candidateNode = candidate.second;
@@ -164,83 +198,62 @@ void updateCandidatesProbabilities(vector<pair<float, int>> &candidates, double 
         {
             // Escolhe o vértice com a maior trilha de feromônio (exploração)
             auto maxPheromone = std::max_element(candidates.begin(), candidates.end(),
-                                                 [](const std::pair<float, int> &a, const std::pair<float, int> &b)
+                                                 [](const std::pair<pair<float, float>, int> &a, const std::pair<pair<float, float>, int> &b)
                                                  {
-                                                     return a.first < b.first;
+                                                     return a.first.first < b.first.first;
                                                  });
 
             if (candidateNode == maxPheromone->second)
             {
-                candidate.first = 1;
+                candidate.first.first = 1;
             }
             else
             {
-                candidate.first = 0;
+                candidate.first.first = 0;
             }
         }
         else
         {
             // Calcula a probabilidade de escolher cada vértice com base no feromônio e na heurística local
             double probability = (pheromone * heuristic) / sum;
-            candidate.first = probability;
+            candidate.first.first = probability;
         }
     }
 
     // Ordena novamente a lista de candidatos com base nas probabilidades atualizadas
     std::sort(candidates.begin(), candidates.end(),
-              [](std::pair<float, int> &a, std::pair<float, int> &b)
+              [](std::pair<pair<float, float>, int> &a, std::pair<pair<float, float>, int> &b)
               {
-                  return a.first > b.first;
+                  return a.first.first > b.first.first;
               });
 }
 
-void markNode(Node *node, Graph &graph, map<int, int> &neighborhoodNotMarkedMap)
+//feromonio, peso relativo, id
+vector<pair<pair<float, float>, int>> createCandidates()
 {
-    vector<int> neighbors = openNeighborhoodMap[node->getId()];
-    int i;
-    node->setMarked(true);
-    neighborhoodNotMarkedMap[node->getId()] = 0;
-    for (int neighbor : neighbors)
-    {
-        Node *neighborNode = nodeMap[neighbor];
-        if (!neighborNode->isMarked())
-        {
-            neighborhoodNotMarkedMap[neighbor]--;
-            graph.decrementUnmarkedEdges(1);
-        }
-    }
-}
+    vector<pair<pair<float, float>, int>> candidates;
+    Node *node;
 
-bool isGraphIsolated(map<int, int> &neighborhoodNotMarkedMap)
-{
-    bool isIsolated = true;
-    for (auto &node : neighborhoodNotMarkedMap)
-    {
-        if (node.second > 0)
-        {
-            isIsolated = false;
-            break;
-        }
-    }
-    return isIsolated;
-}
-
-void resetMarks(Graph &graph, map<int, int> &neighborhoodNotMarkedMap)
-{
     for (auto &node : nodeMap)
     {
-        node.second->setMarked(false);
-        node.second->setNumberOfUnmarkedEdges(node.second->getNumberOfEdges());
-    }
-    
-    for (auto &node : neighborhoodNotMarkedMap)
-    {
-        node.second = nodeMap[node.first]->getNumberOfUnmarkedEdges();
+        int j;
+        pair<pair<float, float>, int> candidate;
+
+        candidate.first.second = node.second->getWeight() / node.second->getNumberOfEdges();
+        candidate.second = node.second->getId();
+        node.second->setInitialPheromone(1 / candidate.first.second);
+        candidate.first.first = 1 / candidate.first.second;
+        candidates.push_back(candidate);
     }
 
-    graph.setUncoveredEdges(graph.getNumberOfEdges());
+    sort(candidates.begin(), candidates.end(),
+         [](pair<pair<float, float>, int> &a, pair<pair<float, float>, int> &b)
+         {
+             return a.first.first > b.first.first;
+         });
+
+    return candidates;
 }
-
 
 void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta)
 {
@@ -252,40 +265,29 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
     map<int, int> * neighborhoodNotMarkedMap = new map<int, int>();
     createNumberOfNeighborhoodNotMarkedMap(*neighborhoodNotMarkedMap);
     Ant bestAnt;
-
+    int uncoveredEdges = graph.getOrder();
     for (int i = 0; i < cycles; i++)
     {
         cout << "Ciclo " << i << endl;
-        vector<pair<float, int>> *firstCandidates = graph.getCandidates();                  // pega todos os candidatos do grafo
-        initializePheromones(graph, firstCandidates);                                       // deposita o feromonio inicial nos candidatos com base no peso relativo
-        vector<pair<float, int>> candidates = createCandidatesPheromones(firstCandidates); // cria e ordena a lista de candidatos com base no feromonio inicial
-        //percorre lista de candidatos e imprime candidates.first
 
-        // for (int i = 0; i < candidates.size(); i++)
+        vector<pair<pair<float, float>, int>> candidates = createCandidates();        
+
         initializeAnts(ants, nAnts, graph, candidates); // inicializa todas as formigas em um nó aleatorio
         
         for (int i = 0; i < nAnts; i++)
         {
-            vector<pair<float, int>> auxCandidates = createCandidatesPheromones(&candidates);
-            // cout << "Tamanho da lista de candidatos: " << auxCandidates.size() << endl;
-            // for(int j = 0; j < auxCandidates.size(); j++)
-            // {
-            //     cout << auxCandidates[j].first << " ";
-            //     cout << auxCandidates[j].second << endl;
-            //     cout << endl;
-            // }
+            //vector<pair<float, int>> auxCandidates = createCandidatesPheromones(&candidates);
 
-            cout << "Formiga " << i << endl;
             Ant &ant = ants[i];
-            int numberOfEdgesCovered = 0.00;
             vector<int> bestSolution;
             // Ant *bestAnt = nullptr; // ponteiro para a melhor formiga
             int node = ant.antSolution.back();
             ant.solutionCost = nodeMap[node]->getWeight();
-            markNode(nodeMap[node], graph, *neighborhoodNotMarkedMap);
+            markNode(nodeMap[node], *neighborhoodNotMarkedMap);
+            uncoveredEdges -= nodeMap[node]->getNumberOfEdges();
             // remove o primeiro nó da lista de candidates com base na posição dele na lista.
-            auxCandidates.erase(auxCandidates.begin() + ant.positionFirstNode);
-            auxCandidates.shrink_to_fit();
+            candidates.erase(candidates.begin() + ant.positionFirstNode);
+            candidates.shrink_to_fit();
 
             bool validSolution = false;
             
@@ -293,24 +295,19 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
             {
                 
                 // seleciona um candidato com base na roleta
-                double sum_of_fitness = std::accumulate(auxCandidates.begin(), auxCandidates.end(), 0.0,
-                                                        [](double sum, const std::pair<float, int> &auxCandidates)
+                double sum_of_fitness = std::accumulate(candidates.begin(), candidates.end(), 0.0,
+                                                        [](double sum, const std::pair<pair<float, float>, int> &candidates)
                                                         {
-                                                            return sum + auxCandidates.first;
+                                                            return sum + candidates.first.first;
                                                         });
 
                 double roulette = static_cast<double>(rand()) / RAND_MAX;
                 double partialSum = 0.0;
                 int selected_candidate_position = -1;
                 // obtém posição do candidato selecionado
-                for (int i = 0; i < auxCandidates.size(); i++)
+                for (int i = 0; i < candidates.size(); i++)
                 {
-                    partialSum += auxCandidates[i].first / sum_of_fitness;
-                    // cout << "i: " << i << endl;
-                    // cout << "sum_of_fitness: " << sum_of_fitness << endl;
-                    // cout << "partialSum: " << partialSum << endl;
-                    // cout << "roulette: " << roulette << endl;
-                    // cout << endl;
+                    partialSum += candidates[i].first.first / sum_of_fitness;
                     if (partialSum >= roulette)
                     {
                         selected_candidate_position = i;
@@ -320,25 +317,22 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
                 if(selected_candidate_position == -1){
                     selected_candidate_position = 0;
                 }
-                
-                if(auxCandidates.size() == 0)
+
+                if (candidates.size() == 0)
                 {
                     cout << "Candidatos vazios" << endl;
                     break;
                 }
-                // cout << "posicao do candidato selecionado: " << selected_candidate_position << endl;
 
-                node = auxCandidates[selected_candidate_position].second;
+                node = candidates[selected_candidate_position].second;
                 ant.solutionCost += nodeMap[node]->getWeight();
-                markNode(nodeMap[node], graph, *neighborhoodNotMarkedMap);
-                auxCandidates.erase(auxCandidates.begin() + selected_candidate_position);
-                auxCandidates.shrink_to_fit();
+                markNode(nodeMap[node], *neighborhoodNotMarkedMap);
+                candidates.erase(candidates.begin() + selected_candidate_position);
+                candidates.shrink_to_fit();
                 ant.antSolution.push_back(node);
-                // atualiza a lista de candidatos com base no feromonio e na heuristica local
-                // cout << "aqui" << endl;
+
                 //updateLocalPheromones(node, 0.5);
-                updateCandidatesProbabilities(auxCandidates, 0.5, beta, graph.getUncoveredEdges());
-                // cout << "aqui2" << endl;
+                updateCandidatesProbabilities(candidates, 0.5, beta, uncoveredEdges);
                 validSolution = isGraphIsolated(*neighborhoodNotMarkedMap);
             }
             if (ant.solutionCost < bestSolutionCost)
@@ -352,7 +346,12 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
             {
                 ant.isBestSolution = false;
             }
-            resetMarks(graph, *neighborhoodNotMarkedMap);
+
+            resetMarks(*neighborhoodNotMarkedMap);
+            candidates.clear();
+            candidates.shrink_to_fit();
+            candidates = createCandidates();
+            uncoveredEdges = graph.getOrder();
         }
 
         updateGlobalPheromones(ants, evaporation);
