@@ -22,6 +22,9 @@ Graph::Graph(int order, bool directed, bool weightedEdges, bool weightedNodes, i
     this->directed = directed;
     this->totalOfEdges = totalOfEdges;
     this->uncoveredEdges = totalOfEdges;
+    this->nodeMap = map<int, Node *>();
+    this->candidates = new vector<pair<float, int>>();
+    this->openNeighborhoodMap = map<int, vector<int>>();
 }
 
 Graph::~Graph()
@@ -129,7 +132,6 @@ void Graph::addEdge(int id, int targetId, float weight)
     }
     node->addEdge(targetNode, this->directed, weight);
     node->incrementDegree(this->directed);
-    node->incrementNumberOfEdges();
 
     if (!this->directed)
     {
@@ -141,6 +143,30 @@ void Graph::addEdge(int id, int targetId, float weight)
     }
 
     this->numberOfEdges++;
+}
+
+void Graph::printGraph()
+{
+    //print cada nó e suas arestas
+    Node *currentNode = this->firstNode;
+    int somaAre = 0;
+    while (currentNode != nullptr)
+    {
+        cout << "Nó " << currentNode->getId() << endl;
+        Edge *currentEdge = currentNode->getFirstEdge();
+        while (currentEdge != nullptr)
+        {
+            cout << "Aresta " << currentNode->getId() << " -> " << currentEdge->getTargetId() << endl;
+            currentEdge = currentEdge->getNextEdge();
+        }
+        cout << "Quantidade de arestas: " << currentNode->getNumberOfEdges() << endl;
+        somaAre += currentNode->getNumberOfEdges();
+        currentNode = currentNode->getNextNode();
+    }
+
+    cout << "Quantidade de arestas soma: " << somaAre << endl;
+    cout << "Quantidade numero de arestas: " << this->numberOfEdges << endl;
+    cout << "Quantidade total de arestas: " << this->totalOfEdges << endl;
 }
 
 /*
@@ -329,11 +355,15 @@ void Graph::markNode(Node *node)
  * Função para decrementar o número de arestas não marcadas
     * @return void
  */
-void Graph::decrementUnmarkedEdges()
+void Graph::decrementUnmarkedEdges(int number)
 {
-    this->uncoveredEdges--;
+    this->uncoveredEdges-=number;
 }
 
+void Graph::setUncoveredEdges(int number)
+{
+    this->uncoveredEdges = number;
+}
 /*
  *Obtém os vizinhos de um nó, recebe o id do nó como parametro e retorna um vetor com os vizinhos do nó
     * @param id

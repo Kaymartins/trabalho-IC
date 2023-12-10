@@ -115,6 +115,7 @@ void Node::addEdge(Node *target, bool directed, float weight)
         newEdge->setDirected(true);
     }
     this->numberOfUnmarkedEdges++;
+    this->numberOfEdges++;
 }
 
 Edge *Node::searchEdge(int targetId)
@@ -253,13 +254,13 @@ void Node::incrementDegree(bool directed)
 
 int Node::getNumberOfEdges()
 {
-    Edge *currentEdge = this->firstEdge;
+/*     Edge *currentEdge = this->firstEdge;
 
     while (currentEdge != nullptr)
     {
         this->numberOfEdges++;
         currentEdge = currentEdge->getNextEdge();
-    }
+    } */
 
     return this->numberOfEdges;
 }

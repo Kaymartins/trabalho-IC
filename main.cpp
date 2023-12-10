@@ -66,6 +66,7 @@ int main(int argc, char const *argv[])
 
     Graph *graph = readGraph(input_file);
 
+    //graph->printGraph();
     aco(*graph, numIter, 10, 0.5, 1, 1);
     
     return 0;

@@ -12,6 +12,14 @@
 map<int, Node *> nodeMap;
 map<int, vector<int>> openNeighborhoodMap;
 
+void createNumberOfNeighborhoodNotMarkedMap(map<int, int> &markedMap)
+{
+    for (auto &node : nodeMap)
+    {
+        markedMap[node.first] = node.second->getNumberOfUnmarkedEdges();
+    }
+}
+
 void initializePheromones(Graph &graph, vector<pair<float, int>> *firstCandidates)
 {
     for (pair<float, int> candidate : *firstCandidates)
@@ -153,44 +161,53 @@ void updateCandidatesProbabilities(vector<pair<float, int>> &candidates, double 
               });
 }
 
-void markNode(Node *node, Graph &graph)
+void markNode(Node *node, Graph &graph, map<int, int> &neighborhoodNotMarkedMap)
 {
     vector<int> neighbors = openNeighborhoodMap[node->getId()];
+    int i;
     node->setMarked(true);
-    node->setNumberOfUnmarkedEdges(0);
+    neighborhoodNotMarkedMap[node->getId()] = 0;
     for (int neighbor : neighbors)
     {
         Node *neighborNode = nodeMap[neighbor];
         if (!neighborNode->isMarked())
         {
-            neighborNode->decrementUnmarkedEdges();
-            graph.decrementUnmarkedEdges();
+            neighborhoodNotMarkedMap[neighbor]--;
+            graph.decrementUnmarkedEdges(1);
         }
     }
 }
 
-
-
-bool isGraphIsolated(Graph &graph)
+bool isGraphIsolated(map<int, int> &neighborhoodNotMarkedMap)
 {
-    return graph.getUncoveredEdges() == 0;
+    bool isIsolated = true;
+    for (auto &node : neighborhoodNotMarkedMap)
+    {
+        if (node.second > 0)
+        {
+            isIsolated = false;
+            break;
+        }
+    }
+    return isIsolated;
 }
 
-void calculateNumberOfEdges(Graph &graph)
+void resetMarks(Graph &graph, map<int, int> &neighborhoodNotMarkedMap)
 {
-    int numberOfEdges = 0, numberOfUnmarkedEdges = 0;
-    vector<int> neighbors;
     for (auto &node : nodeMap)
     {
-        neighbors = openNeighborhoodMap[node.first];
-        numberOfEdges += neighbors.size();
-        numberOfUnmarkedEdges += node.second->getNumberOfUnmarkedEdges();
+        node.second->setMarked(false);
+        node.second->setNumberOfUnmarkedEdges(node.second->getNumberOfEdges());
+    }
+    
+    for (auto &node : neighborhoodNotMarkedMap)
+    {
+        node.second = nodeMap[node.first]->getNumberOfUnmarkedEdges();
     }
 
-    cout << "Number of edges: " << numberOfEdges/2 << endl;
-    cout << "Number of edges in graph: " << graph.getNumberOfEdges() << endl;
-    cout << "Number of unmarked edges: " << numberOfUnmarkedEdges/2 << endl;
+    graph.setUncoveredEdges(graph.getNumberOfEdges());
 }
+
 
 void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, float beta)
 {
@@ -198,6 +215,9 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
     int nAnts = graph.getOrder() * 0.25;
     openNeighborhoodMap = graph.getNeighborhoodMap();
     nodeMap = graph.getNodeMap();
+    map<int, int> * neighborhoodNotMarkedMap = new map<int, int>();
+    createNumberOfNeighborhoodNotMarkedMap(*neighborhoodNotMarkedMap);
+    Ant bestAnt;
 
     for (int i = 0; i < cycles; i++)
     {
@@ -210,18 +230,20 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
         for (int i = 0; i < 1; i++)
         {
             Ant &ant = ants[i];
-            float numberOfEdgesCovered = 0.00;
+            int numberOfEdgesCovered = 0.00;
             vector<int> bestSolution;
             double bestSolutionCost = std::numeric_limits<double>::max();
-            Ant *bestAnt = nullptr; // ponteiro para a melhor formiga
+            // Ant *bestAnt = nullptr; // ponteiro para a melhor formiga
             int node = ant.antSolution.back();
             ant.solutionCost = nodeMap[node]->getWeight();
-            numberOfEdgesCovered += (nodeMap[node]->getNumberOfUnmarkedEdges())/2;
-            markNode(nodeMap[node], graph);
+            markNode(nodeMap[node], graph, *neighborhoodNotMarkedMap);
             // remove o primeiro nó da lista de candidates com base na posição dele na lista.
             candidates.erase(candidates.begin() + ant.positionFirstNode);
             candidates.shrink_to_fit();
-            while (static_cast<int>(numberOfEdgesCovered) != graph.getNumberOfEdges())
+
+            bool validSolution = false;
+
+            while (!validSolution)
             {
                 // seleciona um candidato com base na roleta
                 double sum_of_fitness = std::accumulate(candidates.begin(), candidates.end(), 0.0,
@@ -243,36 +265,45 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
                         break;
                     }
                 }
+                if(candidates.size() == 0)
+                {
+                    cout << "Candidatos vazios" << endl;
+                    break;
+                }
 
                 node = candidates[selected_candidate_position].second;
                 ant.solutionCost += nodeMap[node]->getWeight();
-                numberOfEdgesCovered += (nodeMap[node]->getNumberOfUnmarkedEdges())/2;
-                markNode(nodeMap[node], graph);
+                markNode(nodeMap[node], graph, *neighborhoodNotMarkedMap);
                 candidates.erase(candidates.begin() + selected_candidate_position);
                 candidates.shrink_to_fit();
                 ant.antSolution.push_back(node);
-                cout << "Number of edges covered: " << numberOfEdgesCovered << endl;
                 // atualiza a lista de candidatos com base no feromonio e na heuristica local
-                //updateCandidatesProbabilities(candidates, 0.5, beta, graph.getUncoveredEdges());                
+                updateCandidatesProbabilities(candidates, 0.5, beta, graph.getUncoveredEdges());
+                validSolution = isGraphIsolated(*neighborhoodNotMarkedMap);
             }
             if (ant.solutionCost < bestSolutionCost)
             {
-                if (bestAnt != nullptr)
-                {
-                    bestAnt->isBestSolution = false;
-                }
-
                 bestSolutionCost = ant.solutionCost;
                 bestSolution = ant.antSolution;
-                bestAnt = &ant;
-                bestAnt->isBestSolution = true;
+                bestAnt = ant;
             }
-            graph.resetMarks();
+            else
+            {
+                ant.isBestSolution = false;
+            }
+            resetMarks(graph, *neighborhoodNotMarkedMap);
         }
-        updateGlobalPheromones(ants, evaporation);
+        cout << "Melhor custo: " << bestAnt.solutionCost << endl;
+        cout << "Melhor solucao: ";
+        for (int i = 0; i < bestAnt.antSolution.size(); i++)
+        {
+            cout << bestAnt.antSolution[i] << " ";
+        }
+
+        //updateGlobalPheromones(ants, evaporation);
     }
 
-/*     for (int i = 0; i < ants.size(); i++)
+    /* for (int i = 0; i < ants.size(); i++)
     {
         cout << "Ant " << i << ": ";
         for (int j = 0; j < ants[i].antSolution.size(); j++)
@@ -282,6 +313,6 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
         cout << "Cost: " << ants[i].solutionCost << " IsBestSolution: " << ants[i].isBestSolution << endl;
         cout << "------------------------------------";
         cout << endl;
-    }
-     */
+    } */
+    
 }

@@ -64,10 +64,11 @@ public:
     vector <pair<float, int>> *getCandidates();
     map<int, Node *> getNodeMap();
 
-    void decrementUnmarkedEdges();
+    void decrementUnmarkedEdges(int number);
+    void setUncoveredEdges(int number);
 
-    //métodos relacionados a caracteristicas do grafo
-    
+        // métodos relacionados a caracteristicas do grafo
+
     bool isWeightedEdges();
     bool isWeightedNodes();
     bool isDirected();
@@ -81,6 +82,8 @@ public:
     void removeEdge(int id, int targetId);
     void removeAllEdges(int id);
     void resetMarks();
+
+    void printGraph();
 
     bool isIsolated(); // Grafo sem arestas
     vector<int> getOpenNeighborhood(int id);
