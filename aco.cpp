@@ -70,14 +70,14 @@ void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph, vector<pa
     for (int i = 0; i < numberOfAnts; i++)
     {
         Ant ant;
-        int randomNodeIndex = rand() % graph.getOrder(); // Escolhe um índice de nó aleatório
+        int randomNodeIndex = rand() % candidates.size(); // Escolhe um índice de nó aleatório
         if (randomNodeIndex == 0)
             randomNodeIndex = 1;
 
         ant.antSolution.push_back(randomNodeIndex); // Usa o índice do nó
         ant.solutionCost = nodeMap[randomNodeIndex]->getWeight();
         ant.isBestSolution = false;
-        ants.push_back(ant);
+        
         // achar a posicao do No encontrado na lista candidates
         for (int j = 0; j < candidates.size(); j++)
         {
@@ -87,6 +87,7 @@ void initializeAnts(vector<Ant> &ants, int numberOfAnts, Graph &graph, vector<pa
                 break;
             }
         }
+        ants.push_back(ant);
     }
 }
 
@@ -287,10 +288,10 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
             auxCandidates.shrink_to_fit();
 
             bool validSolution = false;
-
+            
             while (!validSolution)
             {
-                // cout << "entrou no while" << endl;
+                
                 // seleciona um candidato com base na roleta
                 double sum_of_fitness = std::accumulate(auxCandidates.begin(), auxCandidates.end(), 0.0,
                                                         [](double sum, const std::pair<float, int> &auxCandidates)
