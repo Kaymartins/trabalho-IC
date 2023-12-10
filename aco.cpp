@@ -275,7 +275,7 @@ void aco(Graph &graph, int cycles, int steps, float evaporation, float alpha, fl
             //     cout << endl;
             // }
 
-            cout << "Formiga " << i << endl;
+            // cout << "Formiga " << i << endl;
             Ant &ant = ants[i];
             int numberOfEdgesCovered = 0.00;
             vector<int> bestSolution;
